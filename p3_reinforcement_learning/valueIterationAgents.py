@@ -36,32 +36,19 @@ class ValueIterationAgent(ValueEstimationAgent):
     self.iterations = iterations
     self.values = util.Counter() # A Counter is a dict with default 0
      
-    "*** YOUR CODE HERE ***"
-    #print self.values
-        state = self.mdp.getStates()[2]
-        #print mdp.getPossibleActions(state)
-        nextState = mdp.getTransitionStatesAndProbs(state, mdp.getPossibleActions(state)[0])
-        #print nextState
-        #print "printed next state"
-        #print mdp.getReward(state, mdp.getPossibleActions(state)[0] ,nextState)
+    "*** YOUR CODE HERE ***"    
+    for i in range(self.iterations):
+    	for state in self.mdp.getStates():
+    		possibleActions = self.mdp.getPossibleActions(state)    
+    		valuesForActions = util.Counter()
+    		for action in possibleActions:
+			   	transitionStatesAndProbs = self.mdp.getTransitionStatesAndProbs(state, action)
+			   	valueState = 0
+			   	for transition in transitionStatesAndProbs:
+			   		valueState += transition[1] * (self.mdp.getReward(state, action, transition[0]) + self.discount * self.values[transition[0]])
+			   	valuesForActions[action] = valueState
+    		self.values[state] = valuesForActions[valuesForActions.argMax()]
 
-        states = self.mdp.getStates()
-
-        #print self.mdp.getStartState()
-
-        for i in range(iterations):
-          valuesCopy = self.values.copy()
-          for state in states:
-            finalValue = None
-            for action in self.mdp.getPossibleActions(state):
-              currentValue = self.computeQValueFromValues(state,action)
-              if finalValue == None or finalValue < currentValue:
-                finalValue = currentValue
-            if finalValue == None:
-              finalValue = 0
-            valuesCopy[state] = finalValue
-          
-          self.values = valuesCopy
     
   def getValue(self, state):
     """
@@ -79,14 +66,12 @@ class ValueIterationAgent(ValueEstimationAgent):
       to derive it on the fly.
     """
     "*** YOUR CODE HERE ***"
-    #util.raiseNotDefined()
-    value = 0
-      transitionFunction = self.mdp.getTransitionStatesAndProbs(state,action)
-      for nextState, probability in transitionFunction:
-        value += probability * (self.mdp.getReward(state, action, nextState) 
-                  + (self.discount * self.values[nextState]))
-
-      return value
+    transitionStatesAndProbs = self.mdp.getTransitionStatesAndProbs(state, action)
+    qValue = 0
+    for transition in transitionStatesAndProbs:
+		qValue += transition[1] * self.mdp.getReward(state, action, transition[0]) + self.values[transition[0]]
+    
+    return qValue
 
   def getPolicy(self, state):
     """
@@ -96,22 +81,28 @@ class ValueIterationAgent(ValueEstimationAgent):
       there are no legal actions, which is the case at the
       terminal state, you should return None.
     """
-    "*** YOUR CODE HERE ***"
-    #util.raiseNotDefined()
+    "*** YOUR CODE HERE ***"    
+    if self.mdp.isTerminal(state):
+    	return None
+    
     possibleActions = self.mdp.getPossibleActions(state)
-     
-      if len(possibleActions) == 0:
-        return None
-
-      value = None
-      result = None
-      for action in possibleActions:
-        temp = self.computeQValueFromValues(state, action)
-        if value == None or temp > value:
-          value = temp
-          result = action
-
-      return result
+    
+    valuesForActions = util.Counter()
+    for action in possibleActions:
+    	transitionStatesAndProbs = self.mdp.getTransitionStatesAndProbs(state, action)
+    	valueState = 0
+    	for transition in transitionStatesAndProbs:
+    		valueState += transition[1] * (self.mdp.getReward(state, action, transition[0]) + self.discount * self.values[transition[0]])
+    	valuesForActions[action] = valueState
+    	
+    #print "FROM ", state, ": ",valuesForActions
+    if valuesForActions.totalCount() == 0:
+    	import random
+    	return possibleActions[int(random.random() * len(possibleActions))]
+    else:
+    	valueToReturn = valuesForActions.argMax()
+    	#print "RETURNING: ", valueToReturn
+    	return valueToReturn
 
   def getAction(self, state):
     "Returns the policy at the state (no exploration)."
